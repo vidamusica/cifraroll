@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cifra Roller</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;700&display=swap');
+  :root {
+    --bg: #101418; --bg2: #0B0F13; --panel: #1A2027; --panel2: #151B21;
+    --border: #2A333C; --border2: #242D36;
+    --text: #E9E4D8; --muted: #7C8791; --muted2: #B9C2CA; --faint: #5A646E;
+    --gold: #F0B441; --red: #E06055; --green: #7BC67B;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Archivo', system-ui, sans-serif;
+  }
+  .page { max-width: 760px; margin: 0 auto; padding: 28px 18px 60px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+  .eyebrow { font-size: 11px; letter-spacing: 3px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+  h1 { font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); border: 1px dashed var(--border); border-radius: 12px; line-height: 1.6; }
+  .empty .note { font-size: 40px; margin-bottom: 12px; }
+
+  .btn { font-family: inherit; cursor: pointer; font-size: 15px; border-radius: 8px; }
+  .btn-primary { background: var(--gold); color: #141310; border: none; padding: 10px 18px; font-weight: 700; }
+  .btn-ghost { background: transparent; color: var(--muted2); border: 1px solid var(--border); padding: 8px 14px; font-size: 14px; }
+  .btn-danger { background: var(--red); color: #fff; border: none; padding: 8px 14px; font-size: 14px; font-weight: 700; }
+  .btn-save-key {
+    background: rgba(240,180,65,0.15); color: var(--gold);
+    border: 1px solid rgba(240,180,65,0.45); padding: 8px 14px;
+    border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap;
+  }
+
+  .save-banner {
+    font-size: 13px; color: var(--muted2); border: 1px solid var(--border);
+    background: var(--panel2); border-radius: 8px; padding: 8px 12px;
+    margin-bottom: 14px; line-height: 1.5;
+  }
+  .save-banner.ok { color: var(--green); border-color: rgba(123,198,123,0.4); }
+  .save-banner.err { color: var(--red); border-color: rgba(224,96,85,0.5); background: rgba(224,96,85,0.08); }
+
+  .song-list { display: flex; flex-direction: column; gap: 10px; }
+  .card {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .card:hover { border-color: #3A4550; }
+  .card-main { flex: 1; min-width: 0; cursor: pointer; }
+  .card-title { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-meta { display: flex; gap: 8px; margin-top: 6px; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--border2); color: var(--muted2); font-family: 'IBM Plex Mono', monospace; }
+  .badge.gold { background: rgba(240,180,65,0.12); color: var(--gold); }
+  .card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .foot-note { margin-top: 24px; font-size: 12px; color: var(--faint); text-align: center; }
+
+  label { display: block; font-size: 13px; color: var(--muted2); margin-bottom: 6px; font-weight: 600; }
+  label .hint { color: var(--muted); font-weight: 400; }
+  input[type=text], input[type=number], select {
+    width: 100%; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 15px; font-family: inherit;
+  }
+  textarea {
+    width: 100%; min-height: 320px; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    padding: 14px; font-size: 14px; line-height: 1.55;
+    font-family: 'IBM Plex Mono', monospace; resize: vertical;
+  }
+  input[type=range] { width: 100%; accent-color: var(--gold); }
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .form-row > div { min-width: 90px; }
+  .help-text { font-size: 14px; color: var(--muted2); line-height: 1.6; margin-top: 0; }
+
+  /* PLAYER */
+  #player { position: fixed; inset: 0; background: var(--bg2); overflow: hidden; display: none; }
+  #player.active { display: block; }
+  .player-top {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: linear-gradient(var(--bg2) 60%, transparent);
+    transition: opacity .3s;
+  }
+  .player-title { font-weight: 800; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+  .player-sub { font-size: 12px; color: var(--muted); }
+  .player-sub b { color: var(--gold); cursor: pointer; text-decoration: underline dotted; }
+  .beat-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+  .beat-dot.pulsing { animation: beatPulse infinite ease-out; }
+  @keyframes beatPulse { 0% { transform: scale(1.25); opacity: 1; } 50% { transform: scale(0.85); opacity: 0.5; } 100% { transform: scale(1); opacity: 0.8; } }
+
+  .scroll-area { position: absolute; inset: 0; overflow-y: auto; padding: 0 20px; cursor: pointer; }
+  .scroll-area pre { margin: 0; font-family: 'IBM Plex Mono', monospace; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .l-chord { color: var(--gold); font-weight: 700; }
+  .l-lyric { color: var(--text); }
+  .l-section { color: var(--muted); letter-spacing: 2px; }
+
+  .read-line {
+    position: absolute; left: 0; right: 0; top: 38vh; height: 0;
+    pointer-events: none; z-index: 3;
+  }
+  /* marcadores discretos nas bordas, sem cruzar o texto */
+  .read-line::before, .read-line::after {
+    content: ""; position: absolute; top: -7px;
+    border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+  }
+  .read-line::before { left: 0; border-left: 9px solid rgba(240,180,65,0.7); }
+  .read-line::after { right: 0; border-right: 9px solid rgba(240,180,65,0.7); }
+  .count-in {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    font-size: 140px; font-weight: 900; color: var(--gold); z-index: 6; pointer-events: none;
+    text-shadow: 0 0 60px rgba(240,180,65,0.4);
+  }
+  .count-in.show { display: flex; animation: countPop 0.4s ease-out; }
+  @keyframes countPop { 0% { transform: scale(1.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  .player-controls {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px; flex-wrap: wrap; padding: 14px 12px 18px;
+    background: linear-gradient(transparent, var(--bg2) 45%);
+    transition: opacity .3s;
+  }
+  .hidden-controls { opacity: 0; pointer-events: none; }
+  .ctrl-group {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel2); border: 1px solid var(--border2);
+    border-radius: 999px; padding: 6px 10px;
+  }
+  .ctrl-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 1px; margin-right: 2px; }
+  .ctrl-value { font-family: 'IBM Plex Mono', monospace; font-size: 14px; min-width: 34px; text-align: center; color: var(--gold); font-weight: 700; }
+  .btn-round {
+    width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-family: inherit;
+  }
+  .btn-play {
+    width: 64px; height: 64px; border-radius: 50%; border: none;
+    color: #141310; font-size: 22px; font-weight: 900; cursor: pointer;
+    background: var(--gold); box-shadow: 0 4px 24px rgba(240,180,65,0.35);
+  }
+  .btn-play.playing { background: var(--red); }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 10; display: none;
+    background: rgba(5,8,11,0.75); backdrop-filter: blur(3px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .key-picker {
+    background: #12181E; border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px 22px; max-width: 340px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .key-picker-title { font-size: 13px; color: var(--muted); margin-bottom: 12px; font-weight: 700; letter-spacing: 1px; }
+  .key-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .key-btn {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 0;
+    font-size: 16px; cursor: pointer; background: var(--panel); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .key-btn.active { background: var(--gold); color: #141310; font-weight: 800; }
+  .key-picker-footer { display: flex; gap: 8px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+  .key-picker-note { font-size: 11px; color: var(--faint); margin-top: 10px; text-align: center; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .next-overlay {
+    position: absolute; inset: 0; z-index: 8; display: none;
+    background: rgba(5,8,11,0.88); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .next-overlay.show { display: flex; }
+  .next-card { text-align: center; max-width: 400px; }
+  .next-label { font-size: 12px; letter-spacing: 4px; color: var(--muted); font-weight: 700; }
+  .next-title { font-size: 30px; font-weight: 800; margin: 10px 0 6px; color: var(--text); }
+  .next-meta { font-size: 15px; color: var(--gold); font-family: 'IBM Plex Mono', monospace; }
+  .next-count { font-size: 56px; font-weight: 900; color: var(--gold); margin-top: 14px; min-height: 70px; }
+  .err-msg { color: var(--red); font-size: 13px; margin-top: 8px; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @media (prefers-reduced-motion: reduce) { .beat-dot.pulsing, .count-in.show { animation: none !important; } }
+
+  /* ===== biblioteca ===== */
+  input[type=password] {
+    width: 100%; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 15px; font-family: inherit;
+  }
+  .lib-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .lib-status { font-size: 13px; color: var(--muted2); }
+  .pub-row { cursor: pointer; }
+  .pub-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--gold); flex-shrink: 0; margin: 0; }
+  .badge.update { background: rgba(240,180,65,0.22); color: var(--gold); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ============ LISTA ============ -->
+<div id="view-list" class="page">
+  <div class="header">
+    <div>
+      <div class="eyebrow">REPERTÓRIO</div>
+      <h1>Cifra Roller</h1>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="showBackup()">Backup</button>
+      <button class="btn btn-primary" id="btn-new-song" onclick="showEditor(null)">+ Nova música</button>
+      <button class="btn btn-primary" id="btn-new-set" style="display:none;" onclick="showSetEditor(null)">+ Novo show</button>
+      <button class="btn btn-ghost" id="btn-bulk" style="display:none;" onclick="showBulk()">Importar show completo</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="btn btn-primary" id="tab-songs" onclick="setMainTab('songs')">Músicas</button>
+    <button class="btn btn-ghost" id="tab-sets" onclick="setMainTab('sets')">Shows</button>
+    <button class="btn btn-ghost" id="tab-lib" onclick="setMainTab('lib')">Biblioteca</button>
+  </div>
+  <div id="save-banner" style="display:none;"></div>
+  <div id="song-list" class="song-list"></div>
+  <div id="setlist-list" class="song-list" style="display:none;"></div>
+  <div id="lib-list" style="display:none;"></div>
+  <div class="foot-note">Repertório salvo no navegador deste aparelho. Faça backup de vez em quando.</div>
+</div>
+
+<!-- ============ CONEXÃO COM A BIBLIOTECA ============ -->
+<div id="view-conn" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow">BIBLIOTECA</div>
+      <h1>Conexão</h1>
+    </div>
+    <button class="btn btn-ghost" onclick="mainTab='lib'; showList()">‹ Voltar</button>
+  </div>
+  <div>
+    <label>Link da biblioteca <span class="hint">(começa com https://script.google.com e termina com /exec)</span></label>
+    <input type="text" id="c-url" placeholder="https://script.google.com/macros/s/.../exec" autocapitalize="off" autocorrect="off" spellcheck="false">
+  </div>
+  <div style="margin-top:16px;">
+    <label>Senha de professor <span class="hint">(só o professor preenche — aluno deixa em branco)</span></label>
+    <input type="password" id="c-senha" autocomplete="off">
+  </div>
+  <div class="err-msg" id="c-msg"></div>
+  <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="saveConnForm()">Salvar e testar</button>
+    <button class="btn btn-ghost" id="btn-disconnect" onclick="disconnectLibrary()">Desconectar</button>
+  </div>
+  <div class="foot-note" style="text-align:left;">O repertório continua no aparelho e funciona sem internet. A biblioteca só é consultada quando você toca em Atualizar (ou ao abrir o app, se tiver conexão).</div>
+</div>
+
+<!-- ============ PUBLICAR NA BIBLIOTECA ============ -->
+<div id="view-publish" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow">PUBLICAR NA BIBLIOTECA</div>
+      <h1>O que os alunos vão ver</h1>
+    </div>
+    <button class="btn btn-ghost" onclick="mainTab='lib'; showList()">‹ Voltar</button>
+  </div>
+  <p class="help-text">Marque o que vai pra biblioteca. Shows marcados levam as músicas deles junto. Publicar substitui a versão atual — o Drive guarda uma cópia da anterior por segurança.</p>
+  <label>Shows</label>
+  <div id="pub-sets" class="song-list"></div>
+  <label style="margin-top:20px;">Músicas</label>
+  <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+    <button class="btn btn-ghost" onclick="pubSelectAll(true)">Marcar todas</button>
+    <button class="btn btn-ghost" onclick="pubSelectAll(false)">Desmarcar todas</button>
+  </div>
+  <div id="pub-songs" class="song-list"></div>
+  <div class="err-msg" id="pub-msg"></div>
+  <div style="margin-top:20px;">
+    <button class="btn btn-primary" id="btn-do-publish" onclick="doPublish()">Publicar</button>
+  </div>
+</div>
+
+<!-- ============ IMPORTAR DO DRIVE ============ -->
+<div id="view-drive" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow">IMPORTAR DO DRIVE</div>
+      <h1>Pasta Cifra Roller</h1>
+    </div>
+    <button class="btn btn-ghost" onclick="mainTab='lib'; showList()">‹ Voltar</button>
+  </div>
+  <p class="help-text">Coloque seus backups <b>.json</b> na pasta <b>Cifra Roller</b> do seu Google Drive e escolha um aqui. As músicas e shows entram no seu repertório — o que já existe não é duplicado.</p>
+  <div id="drive-files" class="song-list"></div>
+</div>
+
+<!-- ============ EDITOR ============ -->
+<div id="view-edit" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow" id="edit-eyebrow">NOVA MÚSICA</div>
+      <h1 id="edit-title-h1">Sem título</h1>
+    </div>
+  </div>
+  <div class="form-row">
+    <div style="flex:2; min-width:180px;">
+      <label>Título</label>
+      <input type="text" id="f-title" placeholder="Nome da música" oninput="document.getElementById('edit-title-h1').textContent = this.value || 'Sem título'">
+    </div>
+    <div style="flex:1;">
+      <label>Tom</label>
+      <select id="f-key"></select>
+    </div>
+    <div style="flex:1;">
+      <label>BPM</label>
+      <div style="display:flex; gap:6px;">
+        <input type="number" id="f-bpm" min="30" max="300" value="100">
+        <button class="btn btn-ghost" style="flex-shrink:0;" onclick="tapTempo(b => document.getElementById('f-bpm').value = b)">TAP</button>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:16px;">
+    <label>Rolagem — <span id="f-scroll-val">6</span> px por batida <span class="hint">(ajuste fino durante a execução)</span></label>
+    <input type="range" id="f-scroll" min="1" max="20" step="0.5" value="6" oninput="document.getElementById('f-scroll-val').textContent = this.value">
+  </div>
+  <div style="margin-top:16px;">
+    <label>Letra e cifra <span class="hint">(cole a cifra — título e tom são detectados automaticamente)</span></label>
+    <textarea id="f-text" spellcheck="false"></textarea>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="saveEditor()">Salvar</button>
+    <button class="btn btn-ghost" onclick="detectFromText(true)">Detectar título e tom</button>
+    <button class="btn btn-ghost" onclick="showList()">Cancelar</button>
+    <button class="btn btn-ghost" id="btn-example" onclick="useExample()">Usar exemplo</button>
+  </div>
+  <div class="foot-note" id="detect-note" style="text-align:left; display:none;"></div>
+</div>
+
+<!-- ============ IMPORTAR SHOW COMPLETO ============ -->
+<div id="view-bulk" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow">IMPORTAR SHOW COMPLETO</div>
+      <h1>Colar tudo de uma vez</h1>
+    </div>
+    <button class="btn btn-ghost" onclick="showList()">‹ Voltar</button>
+  </div>
+  <div>
+    <label>Nome do show</label>
+    <input type="text" id="b-name" placeholder="Ex: Show Bar do Zé — sexta">
+  </div>
+  <div style="margin-top:16px;">
+    <label>Cole aqui todas as cifras do show <span class="hint">(músicas separadas por [Nome da Música], linha de --- ou 2 linhas em branco)</span></label>
+    <textarea id="b-text" style="min-height:280px;" spellcheck="false" placeholder="Asa Branca
+tom: G
+[Intro]
+G  C  D  G
+...
+
+---
+
+Esperando na Janela
+tom: D
+..."></textarea>
+  </div>
+  <div style="margin-top:14px;">
+    <button class="btn btn-primary" onclick="analyzeBulk()">Analisar</button>
+  </div>
+  <div id="bulk-preview" style="margin-top:20px;"></div>
+</div>
+
+<!-- ============ EDITOR DE SHOW ============ -->
+<div id="view-set-edit" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow" id="set-eyebrow">NOVO SHOW</div>
+      <h1 id="set-title-h1">Sem nome</h1>
+    </div>
+    <button class="btn btn-ghost" onclick="showList()">‹ Voltar</button>
+  </div>
+  <div>
+    <label>Nome do show</label>
+    <input type="text" id="s-name" placeholder="Ex: Show Bar do Zé — sexta" oninput="document.getElementById('set-title-h1').textContent = this.value || 'Sem nome'">
+  </div>
+  <div style="margin-top:20px;">
+    <label>Sequência do show <span class="hint">(use ↑ ↓ pra ordenar)</span></label>
+    <div id="set-order" class="song-list"></div>
+  </div>
+  <div style="margin-top:20px;">
+    <label>Adicionar músicas do repertório</label>
+    <div id="set-available" class="song-list"></div>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:20px;">
+    <button class="btn btn-primary" onclick="saveSetEditor()">Salvar show</button>
+    <button class="btn btn-ghost" onclick="showList()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============ BACKUP ============ -->
+<div id="view-backup" class="page" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="eyebrow">BACKUP</div>
+      <h1>Exportar / Importar</h1>
+    </div>
+    <button class="btn btn-ghost" onclick="showList()">‹ Voltar</button>
+  </div>
+  <div class="tabs">
+    <button class="btn btn-primary" id="tab-export" onclick="setBackupTab('export')">Exportar</button>
+    <button class="btn btn-ghost" id="tab-import" onclick="setBackupTab('import')">Importar</button>
+  </div>
+  <div id="backup-export">
+    <p class="help-text">Baixe o arquivo de backup ou copie o texto e guarde num lugar seguro (Notas, e-mail pra você mesmo). Pra restaurar, use a aba Importar.</p>
+    <textarea id="export-ta" readonly style="min-height:240px;" onfocus="this.select()"></textarea>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="downloadBackup()">Baixar arquivo .json</button>
+      <button class="btn btn-ghost" id="btn-copy" onclick="copyBackup()">Copiar tudo</button>
+    </div>
+  </div>
+  <div id="backup-import" style="display:none;">
+    <p class="help-text">Cole aqui o texto de um backup, ou escolha o arquivo .json. <b>Atenção:</b> importar substitui o repertório atual.</p>
+    <input type="file" id="import-file" accept=".json,application/json" style="margin-bottom:12px; color:var(--muted2);" onchange="importFromFile(this)">
+    <textarea id="import-ta" style="min-height:200px;" placeholder="Cole o backup aqui (começa com [ e termina com ])"></textarea>
+    <div class="err-msg" id="import-err"></div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="doImport()">Importar e substituir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PLAYER ============ -->
+<div id="player">
+  <div class="player-top" id="player-top">
+    <button class="btn btn-ghost" onclick="exitPlayer()">‹ Voltar</button>
+    <div style="text-align:center; min-width:0;">
+      <div class="player-title" id="p-title"></div>
+      <div class="player-sub"><span id="p-pos" style="color:var(--gold); font-weight:700;"></span>Tom: <b id="p-key" onclick="openKeyPicker()"></b><span id="p-key-orig" style="color:var(--faint);"></span> · <span id="p-bpm-label"></span> BPM <span id="p-saved" style="color:var(--green); opacity:0; transition:opacity .4s;">&#10003; salvo</span></div>
+    </div>
+    <div class="beat-dot" id="beat-dot" title="Pulso do andamento"></div>
+  </div>
+
+  <div class="scroll-area" id="scroll-area" onclick="toggleControls()"></div>
+  <div class="read-line"></div>
+  <div class="count-in" id="count-in"></div>
+
+  <!-- overlay de próxima música do show -->
+  <div class="next-overlay" id="next-overlay">
+    <div class="next-card">
+      <div class="next-label">PRÓXIMA</div>
+      <div class="next-title" id="next-title"></div>
+      <div class="next-meta" id="next-meta"></div>
+      <div class="next-count" id="next-count"></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="startNextNow()">Tocar agora ▶</button>
+        <button class="btn btn-ghost" onclick="pauseNextCountdown()">Esperar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="player-controls" id="player-controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">BPM</span>
+      <button class="btn-round" onclick="adjBpm(-2)">−</button>
+      <span class="ctrl-value" id="c-bpm">100</span>
+      <button class="btn-round" onclick="adjBpm(2)">+</button>
+      <button class="btn-round" style="width:auto; padding:0 10px; border-radius:999px; font-size:11px; font-weight:700;" onclick="tapTempo(b => { P.bpm = Math.max(30, Math.min(300, b)); updatePlayerUI(); schedulePlayerSave(); })">TAP</button>
+    </div>
+    <button class="btn-round" id="btn-prev" style="display:none;" onclick="gotoSong(-1)">⏮</button>
+    <button class="btn-play" id="btn-play" onclick="togglePlay()">▶</button>
+    <button class="btn-round" id="btn-next" style="display:none;" onclick="gotoSong(1)">⏭</button>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Rolagem</span>
+      <button class="btn-round" onclick="adjScroll(-0.5)">−</button>
+      <span class="ctrl-value" id="c-scroll">6</span>
+      <button class="btn-round" onclick="adjScroll(0.5)">+</button>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Tom</span>
+      <button class="btn-round" onclick="adjTranspose(-1)">♭</button>
+      <span class="ctrl-value" id="c-key" style="cursor:pointer;" onclick="openKeyPicker()">C</span>
+      <button class="btn-round" onclick="adjTranspose(1)">♯</button>
+    </div>
+    <button class="btn btn-save-key" id="btn-save-key" style="display:none;" onclick="applyTranspose()"></button>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Fonte</span>
+      <button class="btn-round" onclick="adjFont(-2)">A−</button>
+      <button class="btn-round" onclick="adjFont(2)">A+</button>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Contagem</span>
+      <button class="btn-round" id="btn-precount" style="width:auto; padding:0 12px; border-radius:999px; font-size:12px; font-weight:700;" onclick="togglePreCount()">4</button>
+    </div>
+  </div>
+</div>
+
+<!-- seletor de tom -->
+<div class="overlay" id="key-overlay" onclick="closeKeyPicker(event)">
+  <div class="key-picker" onclick="event.stopPropagation()">
+    <div class="key-picker-title">TRANSPOR PARA</div>
+    <div class="key-grid" id="key-grid"></div>
+    <div class="key-picker-footer">
+      <button class="btn btn-save-key" id="btn-save-key-2" style="display:none;" onclick="applyTranspose()"></button>
+      <button class="btn btn-ghost" onclick="closeKeyPicker()">Fechar</button>
+    </div>
+    <div class="key-picker-note">Sem salvar, a transposição vale só nesta sessão.</div>
+  </div>
+</div>
+
+<script>
+/* ============ MÚSICA / TEORIA ============ */
+const NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const NOTES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+const NOTE_INDEX = {
+  C: 0,
+  "C#": 1,
+  Db: 1,
+  D: 2,
+  "D#": 3,
+  Eb: 3,
+  E: 4,
+  F: 5,
+  "F#": 6,
+  Gb: 6,
+  G: 7,
+  "G#": 8,
+  Ab: 8,
+  A: 9,
+  "A#": 10,
+  Bb: 10,
+  B: 11
+};
+// ===== notacao brasileira de acordes =====
+var NUM_RE = "(?:1[13]|\\d)"; // 11, 13 ou digito
+var ALT_RE = "(?:[#b]?" + NUM_RE + "[+\\-]?|[+\\-]" + NUM_RE + ")"; // b9, #11, 13-, 5-...
+var PAREN_RE = "\\(" + ALT_RE + "(?:/" + ALT_RE + ")*\\)"; // (9), (b9/#11), (6/9)
+var ATOM_RE = "(?:m(?!aj)|maj|min|dim|aug|sus|add|M|\u0394|[\u00b0\u00baø]|\\+|\\-|" + NUM_RE + "|[#b]" + NUM_RE + "|/" + NUM_RE + "[+\\-]?|" + PAREN_RE + ")";
+const CHORD_RE = new RegExp("^([A-G](?:#|b)?)(" + ATOM_RE + "*)(/[A-G](?:#|b)?)?$");
+
+// limpa pontuacao desbalanceada nas bordas: "(D7/9" -> "D7/9", "G7)" -> "G7"
+function cleanChordToken(tok) {
+  var t = tok.replace(/^[\[{]+|[\]}]+$/g, "").replace(/[.,;:]+$/g, "");
+  while (t.charAt(0) === "(" && t.split("(").length - 1 > t.split(")").length - 1) t = t.slice(1);
+  while (t.charAt(t.length - 1) === ")" && t.split(")").length - 1 > t.split("(").length - 1) t = t.slice(0, -1);
+  return t;
+}
+
+// separadores neutros: nao contam nem como acorde nem como palavra
+function isNeutralToken(tok) {
+  var t = cleanChordToken(tok);
+  if (!t) return true;
+  return /^[\/|%.\-\u2013\u2014]+$/.test(t) || /^\d+x?$/i.test(t) || /^x\d+$/i.test(t);
+}
+const KEYS = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", "Cm", "C#m", "Dm", "Ebm", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "Bbm", "Bm"];
+function isChordToken(tok) {
+  var t = cleanChordToken(tok);
+  if (!t) return true;
+  if (t.indexOf("--") >= 0 || t.indexOf("|") >= 0) return false; // tablatura
+  return CHORD_RE.test(t);
+}
+function isChordLine(line) {
+  const toks = line.trim().split(/\s+/).filter(Boolean);
+  if (!toks.length) return false;
+  const real = toks.filter(t => !isNeutralToken(t));
+  if (!real.length) return false;
+  return real.filter(isChordToken).length / real.length >= 0.6;
+}
+
+// [Intro], [Refrão 2], [Verso 1] etc = seção; [Asa Branca] = título de música
+const SECTION_WORDS = /^(intro|introdu|verso|refr|pr[eé][ -]?refr|ponte|solo|final|fim|coda|estrofe|parte|interl|instrumental|base|repete|repet|primeira|segunda|terceira|chorus|verse|bridge|outro|tag|riff|vinheta|passagem|entrada|sa[ií]da|acordes|dedilhado|batida|levada)/i;
+function isSectionMarker(line) {
+  const m = line.trim().match(/^\[(.+)\]$/);
+  if (!m) return false;
+  const inner = m[1].trim().replace(/\s*[\d]+x?\s*$/i, "").replace(/^[\d]+[ .-]*/, "").trim();
+  if (!inner) return true; // [2x], [3] etc
+  return SECTION_WORDS.test(inner);
+}
+function isSongTitleBracket(line) {
+  const m = line.trim().match(/^\[(.+)\]$/);
+  return !!m && !isSectionMarker(line) && !isChordLine(m[1]);
+}
+function transposeNote(note, semi, flat) {
+  const i = NOTE_INDEX[note];
+  if (i === undefined) return note;
+  return (flat ? NOTES_FLAT : NOTES_SHARP)[(i + semi + 120) % 12];
+}
+function transposeChordToken(tok, semi, flat) {
+  var m = tok.match(/^([\[({]*)([A-G](?:#|b)?)([\s\S]*)$/);
+  if (!m) return tok;
+  var prefix = m[1],
+    root = m[2],
+    rest = m[3];
+  // baixo invertido: /Nota no FINAL do token (E7/9 tem extensao, nao baixo)
+  rest = rest.replace(/\/([A-G](?:#|b)?)(?=[\)\]}.,]*$)/, function (_, bass) {
+    return "/" + transposeNote(bass, semi, flat);
+  });
+  return prefix + transposeNote(root, semi, flat) + rest;
+}
+function transposeLine(line, semi, flat) {
+  if (!semi) return line;
+  // transpoe token a token, preservando espacamento e rotulos como [Intro]
+  return line.split(/(\s+)/).map(function (part) {
+    if (!part.trim()) return part;
+    if (isNeutralToken(part) || !isChordToken(part)) return part;
+    return transposeChordToken(part, semi, flat);
+  }).join("");
+}
+function escHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ============ DETECÇÃO DE TÍTULO E TOM ============ */
+// extrai todos os acordes do texto
+function extractChords(text) {
+  const chords = [];
+  text.split("\n").forEach(line => {
+    if (!isChordLine(line)) return;
+    line.trim().split(/\s+/).forEach(tok => {
+      if (isNeutralToken(tok)) return;
+      const t = cleanChordToken(tok);
+      const m = t.match(CHORD_RE);
+      if (m && m[1]) chords.push({
+        root: m[1],
+        quality: m[2] || ""
+      });
+    });
+  });
+  return chords;
+}
+
+// pontua os 24 tons possíveis contra os acordes encontrados
+function inferKey(text) {
+  const chords = extractChords(text);
+  if (!chords.length) return null;
+  const isMinorQ = q => /^(m(?!aj)|min|dim)/.test(q) || /[\u00b0\u00ba]/.test(q);
+  // graus diatônicos: [semitons a partir da tônica, é menor?]
+  const MAJOR_DEG = [[0, false], [2, true], [4, true], [5, false], [7, false], [9, true]];
+  const MINOR_DEG = [[0, true], [3, false], [5, true], [7, true], [7, false], [8, false], [10, false]];
+  let best = null,
+    bestScore = -1;
+  for (let tonic = 0; tonic < 12; tonic++) {
+    for (const minor of [false, true]) {
+      const degs = minor ? MINOR_DEG : MAJOR_DEG;
+      let score = 0;
+      chords.forEach((c, i) => {
+        const ci = NOTE_INDEX[c.root];
+        if (ci === undefined) return;
+        const rel = (ci - tonic + 12) % 12;
+        const cm = isMinorQ(c.quality);
+        if (degs.some(([d, dm]) => d === rel && dm === cm)) score += 1;
+        // tônica no início e no fim pesa muito
+        const isTonic = rel === 0 && cm === minor;
+        if (isTonic && i === 0) score += 4;
+        if (isTonic && i === chords.length - 1) score += 6;
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        best = {
+          tonic,
+          minor
+        };
+      }
+    }
+  }
+  if (!best) return null;
+  // usa a grafia mais comum pro tom
+  const flatKeys = [5, 10, 3, 8, 1]; // F, Bb, Eb, Ab, Db (maiores)
+  const useFlat = !best.minor && flatKeys.includes(best.tonic);
+  const name = (useFlat ? NOTES_FLAT : NOTES_SHARP)[best.tonic] + (best.minor ? "m" : "");
+  return KEYS.includes(name) ? name : NOTES_SHARP[best.tonic] + (best.minor ? "m" : "");
+}
+
+// analisa texto colado: título, tom explícito ("tom: G") e corpo limpo
+function analyzePasted(text) {
+  const lines = text.split("\n");
+  let title = null,
+    explicitKey = null;
+  const bodyLines = [];
+  let headerDone = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (!headerDone) {
+      if (!t) continue; // pula vazias do topo
+      const tomMatch = t.match(/^tom\s*[:\-]\s*([A-G](?:#|b)?m?)/i);
+      if (tomMatch) {
+        const k = tomMatch[1].charAt(0).toUpperCase() + tomMatch[1].slice(1);
+        if (KEYS.includes(k)) explicitKey = k;
+        continue; // não vai pro corpo
+      }
+      // [Asa Branca] no topo = título; [Intro] = seção, vai pro corpo
+      if (!title && isSongTitleBracket(t)) {
+        title = t.match(/^\[(.+)\]$/)[1].trim();
+        continue;
+      }
+      const isSection = /^\[.*\]$/.test(t);
+      if (!title && !isChordLine(t) && !isSection && t.length <= 80) {
+        title = t;
+        continue; // título não vai pro corpo
+      }
+      headerDone = true;
+    }
+    bodyLines.push(line);
+  }
+  const body = bodyLines.join("\n").replace(/^\n+/, "");
+  const key = explicitKey || inferKey(body);
+  return {
+    title,
+    key,
+    body
+  };
+}
+const EXAMPLE_TEXT = `[Intro]
+D  A  Bm  G
+
+[Verso 1]
+D              A
+Escreva aqui a letra da música
+Bm                G
+Com os acordes na linha de cima
+D              A
+O app detecta as linhas de cifra
+Bm      G       D
+E destaca em dourado
+
+[Refrão]
+G       A       D
+Aumente ou diminua o BPM
+G       A       Bm
+E ajuste a rolagem no ensaio`;
+
+/* ============ ESTADO / STORAGE ============ */
+const LS_KEY = "cifra-roller-repertorio";
+const LS_SETS = "cifra-roller-shows";
+let songs = [];
+let setlists = [];
+let editingId = null;
+let editingSetId = null;
+let mainTab = "songs";
+function loadSongs() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    songs = raw ? JSON.parse(raw) : [];
+  } catch {
+    songs = [];
+  }
+  try {
+    const raw = localStorage.getItem(LS_SETS);
+    setlists = raw ? JSON.parse(raw) : [];
+  } catch {
+    setlists = [];
+  }
+}
+function persistSongs() {
+  showBanner("Salvando…", "");
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(songs));
+    localStorage.setItem(LS_SETS, JSON.stringify(setlists));
+    const check = localStorage.getItem(LS_KEY);
+    if (check && JSON.parse(check).length === songs.length) {
+      showBanner("Salvo ✓", "ok");
+      setTimeout(hideBanner, 2500);
+      return true;
+    }
+    throw new Error();
+  } catch {
+    showBanner("⚠ Não consegui salvar no navegador. Vá em <b>Backup</b> e baixe o arquivo pra não perder nada.", "err");
+    return false;
+  }
+}
+function showBanner(html, cls) {
+  const b = document.getElementById("save-banner");
+  b.className = "save-banner " + cls;
+  b.innerHTML = html;
+  b.style.display = "block";
+}
+function hideBanner() {
+  document.getElementById("save-banner").style.display = "none";
+}
+function newId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* ============ NAVEGAÇÃO ============ */
+function showView(id) {
+  ["view-list", "view-edit", "view-backup", "view-set-edit", "view-bulk", "view-conn", "view-publish", "view-drive"].forEach(v => document.getElementById(v).style.display = v === id ? "block" : "none");
+  document.getElementById("player").classList.remove("active");
+}
+function showList() {
+  renderList();
+  renderSetlists();
+  setMainTab(mainTab);
+  showView("view-list");
+}
+function setMainTab(tab) {
+  mainTab = tab;
+  document.getElementById("song-list").style.display = tab === "songs" ? "flex" : "none";
+  document.getElementById("setlist-list").style.display = tab === "sets" ? "flex" : "none";
+  document.getElementById("btn-new-song").style.display = tab === "songs" ? "inline-block" : "none";
+  document.getElementById("btn-new-set").style.display = tab === "sets" ? "inline-block" : "none";
+  document.getElementById("btn-bulk").style.display = tab === "sets" ? "inline-block" : "none";
+  document.getElementById("tab-songs").className = "btn " + (tab === "songs" ? "btn-primary" : "btn-ghost");
+  document.getElementById("tab-sets").className = "btn " + (tab === "sets" ? "btn-primary" : "btn-ghost");
+  document.getElementById("lib-list").style.display = tab === "lib" ? "block" : "none";
+  document.getElementById("tab-lib").className = "btn " + (tab === "lib" ? "btn-primary" : "btn-ghost");
+  if (tab === "lib") renderLibrary();
+}
+
+/* ============ SHOWS (SETLISTS) ============ */
+let confirmDeleteSetId = null;
+function renderSetlists() {
+  const el = document.getElementById("setlist-list");
+  if (!setlists.length) {
+    el.innerHTML = `<div class="empty"><div class="note">♪♪</div>Nenhum show montado.<br>Toque em <b>+ Novo show</b> pra criar a sequência do seu próximo show.</div>`;
+    return;
+  }
+  el.innerHTML = setlists.map(sl => {
+    const valid = sl.songIds.filter(id => songs.some(s => s.id === id));
+    return `
+    <div class="card">
+      <div class="card-main" onclick="playSetlist('${sl.id}')">
+        <div class="card-title">${escHtml(sl.name || "(sem nome)")}</div>
+        <div class="card-meta">
+          <span class="badge gold">${valid.length} música${valid.length === 1 ? "" : "s"}</span>
+          <span class="badge">toque pra tocar ▶</span>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-ghost" onclick="showSetEditor('${sl.id}')">Editar</button>
+        ${confirmDeleteSetId === sl.id ? `<button class="btn btn-danger" onclick="deleteSetlist('${sl.id}')">Confirmar?</button>` : `<button class="btn btn-ghost" onclick="askDeleteSet('${sl.id}')">✕</button>`}
+      </div>
+    </div>`;
+  }).join("");
+}
+function askDeleteSet(id) {
+  confirmDeleteSetId = id;
+  renderSetlists();
+}
+function deleteSetlist(id) {
+  setlists = setlists.filter(s => s.id !== id);
+  confirmDeleteSetId = null;
+  persistSongs();
+  renderSetlists();
+}
+let setDraft = null; // { name, songIds }
+function showSetEditor(id) {
+  editingSetId = id;
+  const sl = id ? setlists.find(x => x.id === id) : null;
+  setDraft = {
+    name: (sl === null || sl === void 0 ? void 0 : sl.name) || "",
+    songIds: sl ? [...sl.songIds] : []
+  };
+  document.getElementById("set-eyebrow").textContent = sl ? "EDITAR SHOW" : "NOVO SHOW";
+  document.getElementById("set-title-h1").textContent = (sl === null || sl === void 0 ? void 0 : sl.name) || "Sem nome";
+  document.getElementById("s-name").value = (sl === null || sl === void 0 ? void 0 : sl.name) || "";
+  renderSetEditor();
+  showView("view-set-edit");
+}
+function renderSetEditor() {
+  const order = document.getElementById("set-order");
+  if (!setDraft.songIds.length) {
+    order.innerHTML = `<div class="empty" style="padding:24px;">Show vazio — adicione músicas abaixo.</div>`;
+  } else {
+    order.innerHTML = setDraft.songIds.map((id, i) => {
+      const s = songs.find(x => x.id === id);
+      if (!s) return "";
+      return `
+      <div class="card">
+        <span class="badge gold" style="flex-shrink:0;">${i + 1}</span>
+        <div class="card-main" style="cursor:default;">
+          <div class="card-title">${escHtml(s.title)}</div>
+          <div class="card-meta"><span class="badge">${escHtml(s.key)}</span><span class="badge gold">${s.bpm} BPM</span></div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-round" onclick="moveSetSong(${i}, -1)" ${i === 0 ? "disabled" : ""}>↑</button>
+          <button class="btn-round" onclick="moveSetSong(${i}, 1)" ${i === setDraft.songIds.length - 1 ? "disabled" : ""}>↓</button>
+          <button class="btn-round" onclick="removeSetSong(${i})">✕</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+  const avail = document.getElementById("set-available");
+  const remaining = songs.filter(s => !setDraft.songIds.includes(s.id));
+  avail.innerHTML = remaining.length ? remaining.map(s => `
+      <div class="card">
+        <div class="card-main" style="cursor:default;">
+          <div class="card-title">${escHtml(s.title)}</div>
+          <div class="card-meta"><span class="badge">${escHtml(s.key)}</span><span class="badge gold">${s.bpm} BPM</span></div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-ghost" onclick="addSetSong('${s.id}')">+ Adicionar</button>
+        </div>
+      </div>`).join("") : `<div class="empty" style="padding:24px;">${songs.length ? "Todas as músicas já estão no show." : "Cadastre músicas primeiro na aba Músicas."}</div>`;
+}
+function addSetSong(id) {
+  setDraft.songIds.push(id);
+  renderSetEditor();
+}
+function removeSetSong(i) {
+  setDraft.songIds.splice(i, 1);
+  renderSetEditor();
+}
+function moveSetSong(i, d) {
+  const j = i + d;
+  if (j < 0 || j >= setDraft.songIds.length) return;
+  [setDraft.songIds[i], setDraft.songIds[j]] = [setDraft.songIds[j], setDraft.songIds[i]];
+  renderSetEditor();
+}
+function saveSetEditor() {
+  const sl = {
+    id: editingSetId || newId(),
+    name: document.getElementById("s-name").value.trim() || "Show sem nome",
+    songIds: setDraft.songIds
+  };
+  const i = setlists.findIndex(s => s.id === sl.id);
+  if (i >= 0) setlists[i] = sl;else setlists.push(sl);
+  persistSongs();
+  setMainTab("sets");
+  showList();
+}
+function playSetlist(id) {
+  const sl = setlists.find(x => x.id === id);
+  if (!sl) return;
+  const queue = sl.songIds.filter(sid => songs.some(s => s.id === sid));
+  if (!queue.length) {
+    alert("Esse show está vazio. Edite e adicione músicas.");
+    return;
+  }
+  openQueue(queue, 0);
+}
+
+/* ============ IMPORTAR SHOW COMPLETO ============ */
+let bulkDraft = [];
+function showBulk() {
+  document.getElementById("b-name").value = "";
+  document.getElementById("b-text").value = "";
+  document.getElementById("bulk-preview").innerHTML = "";
+  bulkDraft = [];
+  showView("view-bulk");
+}
+
+// divide o texto colado em blocos de música
+function splitShowText(text) {
+  // 1. separador explícito: linha de --- === ***
+  if (/^\s*[-=*_]{3,}\s*$/m.test(text)) {
+    return text.split(/^\s*[-=*_]{3,}\s*$/m).filter(b => b.trim());
+  }
+  const allLines = text.split("\n");
+  // 2. títulos entre colchetes: [Asa Branca] marca começo de música nova
+  if (allLines.some(isSongTitleBracket)) {
+    const blocks = [];
+    let cur = [];
+    for (const line of allLines) {
+      if (isSongTitleBracket(line)) {
+        if (cur.some(l => l.trim())) blocks.push(cur.join("\n"));
+        cur = [line];
+      } else {
+        cur.push(line);
+      }
+    }
+    if (cur.some(l => l.trim())) blocks.push(cur.join("\n"));
+    return blocks;
+  }
+  // 3. lista só de nomes (nenhuma linha de cifra no texto todo)
+  const hasChords = allLines.some(l => l.trim() && isChordLine(l));
+  if (!hasChords) {
+    return allLines.filter(l => l.trim()).map(l => l.trim());
+  }
+  // 4. heurística: 2+ linhas em branco seguidas de linha com cara de título,
+  //    e o bloco atual já tem cifra (evita cortar no meio de uma música)
+  const blocks = [];
+  let cur = [],
+    blanks = 0,
+    curHasChords = false;
+  for (const line of allLines) {
+    const t = line.trim();
+    if (!t) {
+      blanks++;
+      cur.push(line);
+      continue;
+    }
+    const titleLike = !isChordLine(t) && !/^\[.*\]$/.test(t) && t.length <= 60 && !/^tom\s*[:\-]/i.test(t);
+    if (blanks >= 2 && titleLike && curHasChords) {
+      blocks.push(cur.join("\n"));
+      cur = [line];
+      curHasChords = false;
+    } else {
+      cur.push(line);
+      if (isChordLine(t)) curHasChords = true;
+    }
+    blanks = 0;
+  }
+  if (cur.some(l => l.trim())) blocks.push(cur.join("\n"));
+  return blocks;
+}
+function analyzeBulk() {
+  const text = document.getElementById("b-text").value;
+  if (!text.trim()) return;
+  const blocks = splitShowText(text);
+  bulkDraft = blocks.map((block, i) => {
+    // bloco de uma linha só = música sem cifra (placeholder)
+    if (!block.includes("\n") && !isChordLine(block)) {
+      return {
+        title: block.trim(),
+        key: "C",
+        bpm: 100,
+        text: "",
+        placeholder: true
+      };
+    }
+    const {
+      title,
+      key,
+      body
+    } = analyzePasted(block);
+    return {
+      title: title || `Música ${i + 1}`,
+      key: key || "C",
+      bpm: 100,
+      text: body,
+      placeholder: !body.split("\n").some(l => l.trim() && isChordLine(l))
+    };
+  });
+  renderBulkPreview();
+}
+function renderBulkPreview() {
+  const el = document.getElementById("bulk-preview");
+  if (!bulkDraft.length) {
+    el.innerHTML = "";
+    return;
+  }
+  const placeholders = bulkDraft.filter(d => d.placeholder).length;
+  el.innerHTML = `
+    <label>Encontrei ${bulkDraft.length} música${bulkDraft.length === 1 ? "" : "s"} — confira e corrija antes de criar:</label>
+    ${placeholders ? `<div class="save-banner">⚠ ${placeholders} música${placeholders === 1 ? " veio" : "s vieram"} sem cifra (só o nome). O show será criado, mas cole a cifra delas depois na aba Músicas.</div>` : ""}
+    <div class="song-list">
+      ${bulkDraft.map((d, i) => `
+        <div class="card" style="flex-wrap:wrap;">
+          <span class="badge gold" style="flex-shrink:0;">${i + 1}</span>
+          <input type="text" value="${escHtml(d.title)}" style="flex:2; min-width:140px;" onchange="bulkDraft[${i}].title = this.value">
+          <select style="flex:0 0 84px; width:auto;" onchange="bulkDraft[${i}].key = this.value">
+            ${KEYS.map(k => `<option value="${k}" ${k === d.key ? "selected" : ""}>${k}</option>`).join("")}
+          </select>
+          <input type="number" value="${d.bpm}" min="30" max="300" style="flex:0 0 76px; width:auto;" title="BPM" onchange="bulkDraft[${i}].bpm = Number(this.value) || 100">
+          ${d.placeholder ? `<span class="badge">sem cifra</span>` : ""}
+        </div>`).join("")}
+    </div>
+    <div style="margin-top:16px; display:flex; gap:10px;">
+      <button class="btn btn-primary" onclick="createBulkShow()">Criar show com ${bulkDraft.length} música${bulkDraft.length === 1 ? "" : "s"}</button>
+    </div>
+    <div class="foot-note" style="text-align:left;">BPM não dá pra adivinhar pelo texto — deixei 100 em todas. Ajuste aqui, ou depois use o botão TAP no player batendo no pulso da música.</div>`;
+}
+function createBulkShow() {
+  const ids = bulkDraft.map(d => {
+    const song = {
+      id: newId(),
+      title: d.title.trim() || "Sem título",
+      key: d.key,
+      bpm: Math.max(30, Math.min(300, d.bpm || 100)),
+      scroll: 6,
+      text: d.text
+    };
+    songs.push(song);
+    return song.id;
+  });
+  setlists.push({
+    id: newId(),
+    name: document.getElementById("b-name").value.trim() || "Show importado",
+    songIds: ids
+  });
+  persistSongs();
+  setMainTab("sets");
+  showList();
+}
+
+/* ============ LISTA ============ */
+let confirmDeleteId = null;
+function renderList() {
+  const el = document.getElementById("song-list");
+  if (!songs.length) {
+    el.innerHTML = `<div class="empty"><div class="note">♪</div>Nenhuma música ainda.<br>Toque em <b>+ Nova música</b> pra começar seu repertório.</div>`;
+    return;
+  }
+  el.innerHTML = songs.map(s => `
+    <div class="card">
+      <div class="card-main" onclick="openPlayer('${s.id}')">
+        <div class="card-title">${escHtml(s.title || "(sem título)")}</div>
+        <div class="card-meta">
+          <span class="badge">${escHtml(s.key || "?")}</span>
+          <span class="badge gold">${s.bpm} BPM</span>
+          ${hasUpdate(s) ? `<span class="badge update">versão nova</span>` : ""}
+        </div>
+      </div>
+      <div class="card-actions">
+        ${hasUpdate(s) ? `<button class="btn btn-save-key" onclick="pullSongUpdate('${s.id}')">Atualizar</button>` : ""}
+        <button class="btn btn-ghost" onclick="showEditor('${s.id}')">Editar</button>
+        ${confirmDeleteId === s.id ? `<button class="btn btn-danger" onclick="deleteSong('${s.id}')">Confirmar?</button>` : `<button class="btn btn-ghost" onclick="askDelete('${s.id}')">✕</button>`}
+      </div>
+    </div>`).join("");
+}
+function askDelete(id) {
+  confirmDeleteId = id;
+  renderList();
+}
+function deleteSong(id) {
+  songs = songs.filter(s => s.id !== id);
+  confirmDeleteId = null;
+  persistSongs();
+  renderList();
+}
+
+/* ============ EDITOR ============ */
+function showEditor(id) {
+  editingId = id;
+  const s = id ? songs.find(x => x.id === id) : null;
+  document.getElementById("edit-eyebrow").textContent = s ? "EDITAR" : "NOVA MÚSICA";
+  document.getElementById("edit-title-h1").textContent = (s === null || s === void 0 ? void 0 : s.title) || "Sem título";
+  document.getElementById("f-title").value = (s === null || s === void 0 ? void 0 : s.title) || "";
+  const keySel = document.getElementById("f-key");
+  keySel.innerHTML = KEYS.map(k => `<option value="${k}" ${(s === null || s === void 0 ? void 0 : s.key) === k ? "selected" : ""}>${k}</option>`).join("");
+  document.getElementById("f-bpm").value = (s === null || s === void 0 ? void 0 : s.bpm) || 100;
+  document.getElementById("f-scroll").value = (s === null || s === void 0 ? void 0 : s.scroll) || 6;
+  document.getElementById("f-scroll-val").textContent = (s === null || s === void 0 ? void 0 : s.scroll) || 6;
+  document.getElementById("f-text").value = (s === null || s === void 0 ? void 0 : s.text) || "";
+  document.getElementById("f-text").placeholder = EXAMPLE_TEXT;
+  document.getElementById("btn-example").style.display = s !== null && s !== void 0 && s.text ? "none" : "inline-block";
+  document.getElementById("detect-note").style.display = "none";
+  showView("view-edit");
+}
+function useExample() {
+  document.getElementById("f-text").value = EXAMPLE_TEXT;
+}
+
+// detecta título e tom do texto do editor; manual=true quando vem do botão
+function detectFromText(manual) {
+  const ta = document.getElementById("f-text");
+  const {
+    title,
+    key,
+    body
+  } = analyzePasted(ta.value);
+  const notes = [];
+  const titleField = document.getElementById("f-title");
+  if (title && (manual || !titleField.value.trim())) {
+    titleField.value = title;
+    document.getElementById("edit-title-h1").textContent = title;
+    ta.value = body;
+    notes.push(`título: <b>${escHtml(title)}</b>`);
+  }
+  if (key) {
+    document.getElementById("f-key").value = key;
+    notes.push(`tom detectado: <b>${escHtml(key)}</b>`);
+  }
+  const noteEl = document.getElementById("detect-note");
+  if (notes.length) {
+    noteEl.innerHTML = "✓ Detectei — " + notes.join(" · ") + ". Se errei, é só corrigir nos campos.";
+    noteEl.style.display = "block";
+  } else if (manual) {
+    noteEl.innerHTML = "Não consegui detectar título nem tom nesse texto.";
+    noteEl.style.display = "block";
+  }
+}
+function saveEditor() {
+  const song = {
+    id: editingId || newId(),
+    title: document.getElementById("f-title").value.trim() || "Sem título",
+    key: document.getElementById("f-key").value,
+    bpm: Math.max(30, Math.min(300, Number(document.getElementById("f-bpm").value) || 100)),
+    scroll: Number(document.getElementById("f-scroll").value) || 6,
+    text: document.getElementById("f-text").value
+  };
+  const i = songs.findIndex(s => s.id === song.id);
+  if (i >= 0) songs[i] = song;else songs.push(song);
+  persistSongs();
+  showList();
+}
+
+/* ============ BACKUP ============ */
+function showBackup() {
+  document.getElementById("export-ta").value = JSON.stringify({
+    songs,
+    setlists
+  }, null, 2);
+  document.getElementById("import-ta").value = "";
+  document.getElementById("import-err").textContent = "";
+  setBackupTab("export");
+  showView("view-backup");
+}
+function setBackupTab(tab) {
+  document.getElementById("backup-export").style.display = tab === "export" ? "block" : "none";
+  document.getElementById("backup-import").style.display = tab === "import" ? "block" : "none";
+  document.getElementById("tab-export").className = "btn " + (tab === "export" ? "btn-primary" : "btn-ghost");
+  document.getElementById("tab-import").className = "btn " + (tab === "import" ? "btn-primary" : "btn-ghost");
+}
+function downloadBackup() {
+  const blob = new Blob([JSON.stringify({
+    songs,
+    setlists
+  }, null, 2)], {
+    type: "application/json"
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const d = new Date().toISOString().slice(0, 10);
+  a.download = `cifra-roller-backup-${d}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+async function copyBackup() {
+  const btn = document.getElementById("btn-copy");
+  try {
+    await navigator.clipboard.writeText(document.getElementById("export-ta").value);
+    btn.textContent = "Copiado ✓";
+    setTimeout(() => btn.textContent = "Copiar tudo", 2000);
+  } catch {
+    const ta = document.getElementById("export-ta");
+    ta.focus();
+    ta.select();
+  }
+}
+function importFromFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("import-ta").value = reader.result;
+  };
+  reader.readAsText(file);
+}
+function doImport() {
+  const err = document.getElementById("import-err");
+  err.textContent = "";
+  try {
+    const parsed = JSON.parse(document.getElementById("import-ta").value);
+    let inSongs,
+      inSets = [];
+    if (Array.isArray(parsed)) {
+      inSongs = parsed; // formato antigo
+    } else if (parsed && Array.isArray(parsed.songs)) {
+      inSongs = parsed.songs;
+      inSets = Array.isArray(parsed.setlists) ? parsed.setlists : [];
+    } else throw new Error();
+    const valid = inSongs.filter(s => s && typeof s === "object" && s.id && "text" in s);
+    if (!valid.length) throw new Error();
+    songs = valid;
+    setlists = inSets.filter(s => s && typeof s === "object" && s.id && Array.isArray(s.songIds));
+    persistSongs();
+    showList();
+  } catch {
+    err.textContent = "Esse texto não é um backup válido. Cole exatamente o que foi exportado.";
+  }
+}
+
+/* ============ PLAYER ============ */
+let P = null; // estado do player
+
+// contagem de 4 tempos antes de tocar (preferencia do aparelho)
+let preCountOn = true;
+try {
+  preCountOn = localStorage.getItem("cifra-roller-precount") !== "off";
+} catch (e) {}
+function togglePreCount() {
+  preCountOn = !preCountOn;
+  try {
+    localStorage.setItem("cifra-roller-precount", preCountOn ? "on" : "off");
+  } catch (e) {}
+  updatePreCountBtn();
+}
+function updatePreCountBtn() {
+  var b = document.getElementById("btn-precount");
+  if (!b) return;
+  b.textContent = preCountOn ? "4" : "off";
+  b.style.color = preCountOn ? "var(--gold)" : "var(--muted)";
+}
+
+// salva os ajustes do player ~1s depois da ultima mudanca
+let playerSaveTimer = null;
+function schedulePlayerSave() {
+  clearTimeout(playerSaveTimer);
+  playerSaveTimer = setTimeout(function () {
+    if (!P || !P.song) return;
+    commitCurrentSong();
+    persistSongs();
+    var el = document.getElementById("p-saved");
+    if (el) {
+      el.style.opacity = 1;
+      setTimeout(function () {
+        el.style.opacity = 0;
+      }, 1600);
+    }
+  }, 800);
+}
+function openPlayer(id) {
+  openQueue([id], 0);
+}
+function openQueue(queue, index) {
+  P = {
+    queue,
+    qi: index,
+    song: null,
+    playing: false,
+    bpm: 100,
+    scroll: 6,
+    transpose: 0,
+    fontSize: 20,
+    controlsVisible: true,
+    raf: null,
+    lastTs: null,
+    accum: 0,
+    countTimer: null,
+    nextTimer: null
+  };
+  document.getElementById("player").classList.add("active");
+  document.getElementById("btn-prev").style.display = queue.length > 1 ? "flex" : "none";
+  document.getElementById("btn-next").style.display = queue.length > 1 ? "flex" : "none";
+  updatePreCountBtn();
+  loadSongIntoPlayer(index);
+  startLoop();
+}
+
+// grava os ajustes da música atual antes de trocar/sair
+function commitCurrentSong() {
+  if (!P || !P.song) return;
+  const i = songs.findIndex(s => s.id === P.song.id);
+  if (i >= 0) songs[i] = {
+    ...P.song,
+    bpm: P.bpm,
+    scroll: P.scroll,
+    fontSize: P.fontSize
+  };
+}
+function loadSongIntoPlayer(index) {
+  const s = songs.find(x => x.id === P.queue[index]);
+  if (!s) return;
+  P.qi = index;
+  P.song = {
+    ...s
+  };
+  P.bpm = s.bpm;
+  P.scroll = s.scroll || 6;
+  P.fontSize = s.fontSize || 20;
+  P.transpose = 0;
+  P.playing = false;
+  P.accum = 0;
+  hideNextOverlay();
+  renderPlayerText();
+  updatePlayerUI();
+  document.getElementById("scroll-area").scrollTop = 0;
+}
+function gotoSong(d) {
+  const target = P.qi + d;
+  if (target < 0 || target >= P.queue.length) return;
+  commitCurrentSong();
+  clearInterval(P.countTimer);
+  clearInterval(P.nextTimer);
+  loadSongIntoPlayer(target);
+}
+
+/* --- fim da música: emenda com a próxima --- */
+function onSongEnd() {
+  P.playing = false;
+  updatePlayerUI();
+  if (P.qi >= P.queue.length - 1) return; // última do show
+  const next = songs.find(x => x.id === P.queue[P.qi + 1]);
+  if (!next) return;
+  document.getElementById("next-title").textContent = next.title;
+  document.getElementById("next-meta").textContent = `${next.key} · ${next.bpm} BPM`;
+  document.getElementById("next-overlay").classList.add("show");
+  let n = 8;
+  const countEl = document.getElementById("next-count");
+  countEl.textContent = n;
+  clearInterval(P.nextTimer);
+  P.nextTimer = setInterval(() => {
+    n--;
+    if (n <= 0) {
+      startNextNow();
+    } else countEl.textContent = n;
+  }, 1000);
+}
+function startNextNow() {
+  clearInterval(P.nextTimer);
+  commitCurrentSong();
+  loadSongIntoPlayer(P.qi + 1);
+  togglePlay(); // já entra com o count-in de 4 tempos no BPM da próxima
+}
+function pauseNextCountdown() {
+  clearInterval(P.nextTimer);
+  document.getElementById("next-count").textContent = "⏸";
+}
+function hideNextOverlay() {
+  document.getElementById("next-overlay").classList.remove("show");
+}
+function preferFlat() {
+  const k = P.song.key || "C";
+  return /b/.test(k) || /^(F|Dm|Gm|Cm|Fm)$/.test(k);
+}
+function displayKey() {
+  return transposeChordToken(P.song.key, P.transpose, preferFlat());
+}
+function renderPlayerText() {
+  const flat = preferFlat();
+  const html = (P.song.text || "").split("\n").map(line => {
+    const section = /^\s*\[.*\]\s*$/.test(line);
+    const chord = !section && isChordLine(line);
+    const shown = chord ? transposeLine(line, P.transpose, flat) : line;
+    const cls = section ? "l-section" : chord ? "l-chord" : "l-lyric";
+    return `<pre class="${cls}" style="font-size:${P.fontSize}px">${escHtml(shown) || " "}</pre>`;
+  }).join("");
+  document.getElementById("scroll-area").innerHTML = `<div style="height:38vh"></div>${html}<div style="height:60vh"></div>`;
+}
+function updatePlayerUI() {
+  document.getElementById("p-title").textContent = P.song.title;
+  document.getElementById("p-pos").textContent = P.queue.length > 1 ? `${P.qi + 1}/${P.queue.length} · ` : "";
+  document.getElementById("p-key").textContent = displayKey();
+  document.getElementById("p-key-orig").textContent = P.transpose !== 0 ? ` (orig. ${P.song.key})` : "";
+  document.getElementById("p-bpm-label").textContent = P.bpm;
+  document.getElementById("c-bpm").textContent = P.bpm;
+  document.getElementById("c-scroll").textContent = P.scroll;
+  document.getElementById("c-key").textContent = displayKey();
+  const dot = document.getElementById("beat-dot");
+  dot.style.animationDuration = (60 / P.bpm).toFixed(3) + "s";
+  dot.classList.toggle("pulsing", P.playing);
+  const btn = document.getElementById("btn-play");
+  btn.textContent = P.playing ? "❚❚" : "▶";
+  btn.classList.toggle("playing", P.playing);
+  const saveBtns = [document.getElementById("btn-save-key"), document.getElementById("btn-save-key-2")];
+  saveBtns.forEach(b => {
+    b.style.display = P.transpose !== 0 ? "inline-block" : "none";
+    b.textContent = "Salvar em " + displayKey();
+  });
+}
+function startLoop() {
+  cancelAnimationFrame(P.raf);
+  P.lastTs = null;
+  const step = ts => {
+    if (!P) return;
+    if (P.lastTs == null) P.lastTs = ts;
+    const dt = (ts - P.lastTs) / 1000;
+    P.lastTs = ts;
+    if (P.playing) {
+      const area = document.getElementById("scroll-area");
+      P.accum += P.bpm / 60 * P.scroll * dt;
+      if (P.accum >= 1) {
+        const px = Math.floor(P.accum);
+        P.accum -= px;
+        area.scrollTop += px;
+        if (area.scrollTop + area.clientHeight >= area.scrollHeight - 2) {
+          onSongEnd();
+        }
+      }
+    }
+    P.raf = requestAnimationFrame(step);
+  };
+  P.raf = requestAnimationFrame(step);
+}
+function togglePlay() {
+  if (P.playing) {
+    P.playing = false;
+    updatePlayerUI();
+    return;
+  }
+  if (!preCountOn) {
+    P.playing = true;
+    updatePlayerUI();
+    return;
+  }
+  // count-in de 4 tempos
+  clearInterval(P.countTimer);
+  const beatMs = 60000 / P.bpm;
+  let n = 4;
+  const ci = document.getElementById("count-in");
+  const show = v => {
+    ci.textContent = v;
+    ci.classList.remove("show");
+    void ci.offsetWidth; // reinicia animação
+    ci.classList.add("show");
+  };
+  show(n);
+  P.countTimer = setInterval(() => {
+    n--;
+    if (n <= 0) {
+      clearInterval(P.countTimer);
+      ci.classList.remove("show");
+      P.playing = true;
+      updatePlayerUI();
+    } else show(n);
+  }, beatMs);
+}
+function adjBpm(d) {
+  P.bpm = Math.max(30, Math.min(300, P.bpm + d));
+  updatePlayerUI();
+  schedulePlayerSave();
+}
+function adjScroll(d) {
+  P.scroll = Math.max(1, Math.min(30, +(P.scroll + d).toFixed(1)));
+  updatePlayerUI();
+  schedulePlayerSave();
+}
+function adjFont(d) {
+  P.fontSize = Math.max(12, Math.min(40, P.fontSize + d));
+  renderPlayerText();
+  schedulePlayerSave();
+}
+function adjTranspose(d) {
+  P.transpose += d;
+  renderPlayerText();
+  updatePlayerUI();
+}
+function toggleControls() {
+  P.controlsVisible = !P.controlsVisible;
+  document.getElementById("player-top").classList.toggle("hidden-controls", !P.controlsVisible);
+  document.getElementById("player-controls").classList.toggle("hidden-controls", !P.controlsVisible);
+}
+function openKeyPicker() {
+  const flat = preferFlat();
+  const names = flat ? NOTES_FLAT : NOTES_SHARP;
+  const isMinor = /m$/.test(P.song.key);
+  const cur = displayKey();
+  document.getElementById("key-grid").innerHTML = names.map((n, i) => {
+    const label = n + (isMinor ? "m" : "");
+    return `<button class="key-btn ${label === cur ? "active" : ""}" onclick="pickKey(${i})">${label}</button>`;
+  }).join("");
+  updatePlayerUI();
+  document.getElementById("key-overlay").classList.add("show");
+}
+function closeKeyPicker(e) {
+  if (e && e.target !== document.getElementById("key-overlay")) return;
+  document.getElementById("key-overlay").classList.remove("show");
+}
+function pickKey(targetIdx) {
+  var _NOTE_INDEX$origRoot;
+  const origRoot = P.song.key.replace(/m$/, "");
+  const origIdx = (_NOTE_INDEX$origRoot = NOTE_INDEX[origRoot]) !== null && _NOTE_INDEX$origRoot !== void 0 ? _NOTE_INDEX$origRoot : 0;
+  let diff = (targetIdx - origIdx + 12) % 12;
+  if (diff > 6) diff -= 12;
+  P.transpose = diff;
+  renderPlayerText();
+  updatePlayerUI();
+  document.getElementById("key-overlay").classList.remove("show");
+}
+function applyTranspose() {
+  if (!P.transpose) return;
+  const flat = preferFlat();
+  P.song.text = (P.song.text || "").split("\n").map(l => isChordLine(l) ? transposeLine(l, P.transpose, flat) : l).join("\n");
+  P.song.key = transposeChordToken(P.song.key, P.transpose, flat);
+  P.transpose = 0;
+  renderPlayerText();
+  updatePlayerUI();
+  document.getElementById("key-overlay").classList.remove("show");
+  schedulePlayerSave();
+}
+function exitPlayer() {
+  cancelAnimationFrame(P.raf);
+  clearInterval(P.countTimer);
+  clearInterval(P.nextTimer);
+  commitCurrentSong();
+  persistSongs();
+  P = null;
+  showList();
+}
+
+/* ============ TAP TEMPO ============ */
+let tapTimes = [];
+function tapTempo(cb) {
+  const now = performance.now();
+  // reinicia se a última batida foi há mais de 3s
+  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 3000) tapTimes = [];
+  tapTimes.push(now);
+  if (tapTimes.length < 2) return;
+  if (tapTimes.length > 8) tapTimes.shift(); // média móvel das últimas batidas
+  const intervals = [];
+  for (let i = 1; i < tapTimes.length; i++) intervals.push(tapTimes[i] - tapTimes[i - 1]);
+  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  cb(Math.round(60000 / avg));
+}
+
+/* ============ BIBLIOTECA (Google Drive) ============ */
+const LS_CONN = "cifra-roller-conexao";
+const LS_LIB = "cifra-roller-biblioteca";
+const LS_PUBSEL = "cifra-roller-publicar-selecao";
+let conn = {
+  url: "",
+  senha: ""
+};
+let library = null; // { songs, setlists, updatedAt } — cópia local da biblioteca
+try {
+  conn = Object.assign(conn, JSON.parse(localStorage.getItem(LS_CONN) || "{}"));
+} catch (e) {}
+try {
+  library = JSON.parse(localStorage.getItem(LS_LIB) || "null");
+} catch (e) {}
+function isTeacher() {
+  return !!(conn.url && conn.senha);
+}
+function saveConn() {
+  try {
+    localStorage.setItem(LS_CONN, JSON.stringify(conn));
+  } catch (e) {}
+}
+function saveLibCache() {
+  try {
+    localStorage.setItem(LS_LIB, JSON.stringify(library));
+  } catch (e) {}
+}
+
+// "impressão digital" do conteúdo da música: muda quando título, tom ou cifra mudam
+function songRev(s) {
+  const str = (s.title || "") + "|" + (s.key || "") + "|" + (s.text || "");
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = (h << 5) + h + str.charCodeAt(i) | 0;
+  return (h >>> 0).toString(36);
+}
+function libSongById(id) {
+  return library && library.songs ? library.songs.find(x => x.id === id) || null : null;
+}
+// a música do meu repertório que corresponde a uma música da biblioteca
+function personalForLib(libId) {
+  return songs.find(x => x.libId === libId || x.id === libId) || null;
+}
+function hasUpdate(s) {
+  if (!s || !s.libId) return false;
+  const ls = libSongById(s.libId);
+  return !!(ls && ls.rev && ls.rev !== s.libRev);
+}
+
+/* --- conversa com a ponte do Drive --- */
+async function apiGet(params) {
+  const qs = Object.keys(params).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(params[k])).join("&");
+  const r = await fetch(conn.url + (conn.url.indexOf("?") >= 0 ? "&" : "?") + qs);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function apiPost(body) {
+  // text/plain evita a checagem extra do navegador que o Apps Script não responde
+  const r = await fetch(conn.url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+function apiErrMsg(e) {
+  return "Não consegui falar com o Drive. Confira a internet e o link da biblioteca." + (e && e.message ? " (" + e.message + ")" : "");
+}
+function flash(html, cls) {
+  showBanner(html, cls);
+  setTimeout(hideBanner, 3500);
+}
+// salva sem o banner "Salvo ✓" (quando a própria ação já mostra uma mensagem)
+function persistQuiet() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(songs));
+    localStorage.setItem(LS_SETS, JSON.stringify(setlists));
+    return true;
+  } catch (e) {
+    showBanner("⚠ Não consegui salvar no navegador. Vá em <b>Backup</b> e baixe o arquivo pra não perder nada.", "err");
+    return false;
+  }
+}
+
+/* --- aba Biblioteca --- */
+function renderLibrary() {
+  const el = document.getElementById("lib-list");
+  if (!conn.url) {
+    el.innerHTML = `<div class="empty"><div class="note">☁</div>Nenhuma biblioteca conectada.<br>Cole o link que o professor te passou.<br><br>
+      <button class="btn btn-primary" onclick="showConn()">Conectar biblioteca</button></div>`;
+    return;
+  }
+  const libSongs = library && library.songs || [];
+  const libSets = library && library.setlists || [];
+  const when = library && library.updatedAt ? "publicada em " + new Date(library.updatedAt).toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }) : "ainda não publicada";
+  let h = `<div class="lib-bar">
+      <span class="lib-status">Biblioteca ${escHtml(when)}${isTeacher() ? ' · <b style="color:var(--gold)">modo professor</b>' : ""}</span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="pullLibrary(false)">Atualizar</button>
+        ${isTeacher() ? `<button class="btn btn-ghost" onclick="showPublish()">Publicar</button>
+        <button class="btn btn-ghost" onclick="showDriveImport()">Importar do Drive</button>` : ""}
+        <button class="btn btn-ghost" onclick="showConn()">Conexão</button>
+      </div>
+    </div>`;
+  if (!libSongs.length) {
+    h += `<div class="empty">A biblioteca está vazia.<br>${isTeacher() ? "Toque em <b>Publicar</b> pra enviar músicas e shows pros alunos." : "Peça pro professor publicar as músicas."}</div>`;
+    el.innerHTML = h;
+    return;
+  }
+  if (libSets.length) {
+    h += `<label style="margin-top:4px;">Shows</label><div class="song-list">` + libSets.map(sl => {
+      const own = setlists.some(x => x.id === sl.id);
+      const copied = setlists.some(x => x.libId === sl.id);
+      const action = own ? `<span class="badge">seu show ✓</span>` : `<button class="btn ${copied ? "btn-ghost" : "btn-primary"}" onclick="copyLibSetlist('${sl.id}')">${copied ? "Atualizar show" : "+ Meus shows"}</button>`;
+      return `<div class="card">
+        <div class="card-main" style="cursor:default;">
+          <div class="card-title">${escHtml(sl.name || "Show")}</div>
+          <div class="card-meta"><span class="badge gold">${sl.songIds.length} música${sl.songIds.length === 1 ? "" : "s"}</span></div>
+        </div>
+        <div class="card-actions">${action}</div>
+      </div>`;
+    }).join("") + `</div>`;
+  }
+  h += `<label style="margin-top:18px;">Músicas</label><div class="song-list">` + libSongs.map(ls => {
+    const mine = personalForLib(ls.id);
+    let action;
+    if (!mine) action = `<button class="btn btn-primary" onclick="copyLibSong('${ls.id}', true)">+ Repertório</button>`;else if (hasUpdate(mine)) action = `<button class="btn btn-save-key" onclick="pullSongUpdate('${mine.id}')">Atualizar</button>`;else action = `<span class="badge">no repertório ✓</span>`;
+    return `<div class="card">
+      <div class="card-main" style="cursor:default;">
+        <div class="card-title">${escHtml(ls.title || "(sem título)")}</div>
+        <div class="card-meta"><span class="badge">${escHtml(ls.key || "?")}</span><span class="badge gold">${ls.bpm} BPM</span></div>
+      </div>
+      <div class="card-actions">${action}</div>
+    </div>`;
+  }).join("") + `</div>`;
+  el.innerHTML = h;
+}
+async function pullLibrary(silent) {
+  if (!conn.url) return;
+  if (!silent) showBanner("Buscando a biblioteca…", "");
+  try {
+    const r = await apiGet({
+      acao: "biblioteca"
+    });
+    if (!r.ok) throw new Error(r.erro || "resposta inválida");
+    library = r.biblioteca;
+    saveLibCache();
+    if (mainTab === "lib") renderLibrary();
+    renderList();
+    const n = songs.filter(hasUpdate).length;
+    if (!silent) {
+      flash(`Biblioteca atualizada ✓ ${library.songs.length} música${library.songs.length === 1 ? "" : "s"}` + (n ? ` · <b>${n}</b> do seu repertório com versão nova` : ""), "ok");
+    } else if (n) {
+      flash(`<b>${n}</b> música${n === 1 ? "" : "s"} do seu repertório com versão nova na biblioteca.`, "ok");
+    }
+  } catch (e) {
+    if (!silent) showBanner("⚠ " + apiErrMsg(e), "err");
+  }
+}
+
+// copia uma música da biblioteca pro meu repertório (não duplica)
+function copyLibSong(libId, standalone) {
+  const ls = libSongById(libId);
+  if (!ls) return null;
+  const existing = personalForLib(libId);
+  if (existing) return existing.id;
+  const copy = Object.assign({}, ls, {
+    id: newId(),
+    libId: ls.id,
+    libRev: ls.rev || songRev(ls)
+  });
+  delete copy.rev;
+  songs.push(copy);
+  if (standalone) {
+    persistQuiet();
+    renderLibrary();
+    renderList();
+    flash(`"${escHtml(ls.title)}" entrou no seu repertório ✓`, "ok");
+  }
+  return copy.id;
+}
+
+// copia (ou re-sincroniza a ordem de) um show da biblioteca
+function copyLibSetlist(libSetId) {
+  const sl = library && library.setlists ? library.setlists.find(x => x.id === libSetId) : null;
+  if (!sl) return;
+  const ids = sl.songIds.map(id => copyLibSong(id, false)).filter(Boolean);
+  const existing = setlists.find(x => x.libId === sl.id);
+  if (existing) {
+    existing.name = sl.name;
+    existing.songIds = ids;
+  } else {
+    setlists.push({
+      id: newId(),
+      libId: sl.id,
+      name: sl.name,
+      songIds: ids
+    });
+  }
+  persistQuiet();
+  renderLibrary();
+  renderList();
+  renderSetlists();
+  flash(`Show "${escHtml(sl.name)}" ${existing ? "atualizado" : "copiado"} ✓ — está na aba Shows`, "ok");
+}
+
+// puxa a versão nova de uma música, mantendo os ajustes pessoais
+function pullSongUpdate(id) {
+  const s = songs.find(x => x.id === id);
+  if (!s) return;
+  const ls = libSongById(s.libId);
+  if (!ls) return;
+  if (!confirm(`Puxar a versão nova de "${ls.title}"?\n\nA cifra e o tom passam a ser os da biblioteca. Seu BPM, rolagem e fonte continuam como estão.`)) return;
+  s.title = ls.title;
+  s.key = ls.key;
+  s.text = ls.text;
+  s.libRev = ls.rev;
+  persistQuiet();
+  renderList();
+  if (mainTab === "lib") renderLibrary();
+  flash(`"${escHtml(ls.title)}" atualizada ✓`, "ok");
+}
+
+/* --- tela de conexão --- */
+function showConn() {
+  document.getElementById("c-url").value = conn.url || "";
+  document.getElementById("c-senha").value = conn.senha || "";
+  document.getElementById("c-msg").textContent = "";
+  document.getElementById("btn-disconnect").style.display = conn.url ? "inline-block" : "none";
+  showView("view-conn");
+}
+async function saveConnForm() {
+  const url = document.getElementById("c-url").value.trim();
+  const senha = document.getElementById("c-senha").value;
+  const msg = document.getElementById("c-msg");
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
+    msg.textContent = "Esse link não parece o de uma biblioteca: ele começa com https://script.google.com e termina com /exec.";
+    return;
+  }
+  msg.style.color = "var(--muted2)";
+  msg.textContent = "Testando a conexão…";
+  const prev = Object.assign({}, conn);
+  conn = {
+    url: url,
+    senha: ""
+  };
+  try {
+    const r = await apiGet({
+      acao: "biblioteca"
+    });
+    if (!r.ok) throw new Error(r.erro || "resposta inválida");
+    library = r.biblioteca;
+    saveLibCache();
+    let teacherFail = false;
+    if (senha) {
+      const t = await apiGet({
+        acao: "teste",
+        senha: senha
+      });
+      if (t.ok) conn.senha = senha;else teacherFail = true;
+    }
+    saveConn();
+    msg.style.color = "";
+    if (teacherFail) {
+      msg.textContent = "Conectei, mas a senha de professor está errada — por enquanto você entrou como aluno (só leitura).";
+      return;
+    }
+    mainTab = "lib";
+    showList();
+    flash(isTeacher() ? "Conectado como professor ✓" : "Biblioteca conectada ✓", "ok");
+  } catch (e) {
+    conn = prev;
+    msg.style.color = "";
+    msg.textContent = "⚠ " + apiErrMsg(e);
+  }
+}
+function disconnectLibrary() {
+  if (!confirm("Desconectar a biblioteca deste aparelho?\n\nSeu repertório e seus shows continuam aqui.")) return;
+  conn = {
+    url: "",
+    senha: ""
+  };
+  library = null;
+  saveConn();
+  try {
+    localStorage.removeItem(LS_LIB);
+  } catch (e) {}
+  mainTab = "lib";
+  showList();
+}
+
+/* --- publicar (professor) --- */
+let pubSel = null;
+function loadPubSel() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_PUBSEL) || "null");
+    if (raw) {
+      const known = new Set(raw.known || []);
+      const sel = {
+        songs: new Set(raw.songs || []),
+        sets: new Set(raw.sets || [])
+      };
+      // o que é novo desde a última publicação já vem marcado
+      songs.forEach(s => {
+        if (!known.has(s.id)) sel.songs.add(s.id);
+      });
+      setlists.forEach(s => {
+        if (!known.has(s.id)) sel.sets.add(s.id);
+      });
+      return sel;
+    }
+  } catch (e) {}
+  return {
+    songs: new Set(songs.map(s => s.id)),
+    sets: new Set(setlists.map(s => s.id))
+  };
+}
+function savePubSel() {
+  try {
+    localStorage.setItem(LS_PUBSEL, JSON.stringify({
+      songs: Array.from(pubSel.songs),
+      sets: Array.from(pubSel.sets),
+      known: songs.map(s => s.id).concat(setlists.map(s => s.id))
+    }));
+  } catch (e) {}
+}
+function showPublish() {
+  pubSel = loadPubSel();
+  document.getElementById("pub-msg").textContent = "";
+  renderPublish();
+  showView("view-publish");
+}
+function renderPublish() {
+  const row = (kind, id, title, meta) => `
+    <label class="card pub-row">
+      <input type="checkbox" ${pubSel[kind].has(id) ? "checked" : ""} onchange="togglePub('${kind}','${id}', this.checked)">
+      <div class="card-main">
+        <div class="card-title">${escHtml(title)}</div>
+        <div class="card-meta">${meta}</div>
+      </div>
+    </label>`;
+  document.getElementById("pub-sets").innerHTML = setlists.length ? setlists.map(sl => row("sets", sl.id, sl.name || "Show", `<span class="badge gold">${sl.songIds.length} músicas</span>`)).join("") : `<div class="empty" style="padding:20px;">Nenhum show no seu repertório.</div>`;
+  document.getElementById("pub-songs").innerHTML = songs.length ? songs.map(s => row("songs", s.id, s.title || "(sem título)", `<span class="badge">${escHtml(s.key || "?")}</span><span class="badge gold">${s.bpm} BPM</span>`)).join("") : `<div class="empty" style="padding:20px;">Nenhuma música no seu repertório.</div>`;
+}
+function togglePub(kind, id, on) {
+  if (on) pubSel[kind].add(id);else pubSel[kind].delete(id);
+}
+function pubSelectAll(on) {
+  pubSel.songs = on ? new Set(songs.map(s => s.id)) : new Set();
+  renderPublish();
+}
+
+// monta o pacote da biblioteca a partir do que está marcado
+function buildLibraryPayload() {
+  const pubId = s => s.libId || s.id;
+  const chosenSets = setlists.filter(sl => pubSel.sets.has(sl.id));
+  const songIdSet = new Set(pubSel.songs);
+  chosenSets.forEach(sl => sl.songIds.forEach(id => songIdSet.add(id)));
+  const byPubId = new Map();
+  songs.filter(s => songIdSet.has(s.id)).forEach(s => {
+    if (byPubId.has(pubId(s))) return;
+    byPubId.set(pubId(s), {
+      id: pubId(s),
+      title: s.title,
+      key: s.key,
+      bpm: s.bpm,
+      scroll: s.scroll || 6,
+      fontSize: s.fontSize || 20,
+      text: s.text || "",
+      rev: songRev(s)
+    });
+  });
+  return {
+    songs: Array.from(byPubId.values()),
+    setlists: chosenSets.map(sl => ({
+      id: sl.libId || sl.id,
+      name: sl.name,
+      songIds: sl.songIds.map(id => {
+        const s = songs.find(x => x.id === id);
+        return s ? pubId(s) : null;
+      }).filter(Boolean)
+    }))
+  };
+}
+async function doPublish() {
+  const msg = document.getElementById("pub-msg");
+  const lib = buildLibraryPayload();
+  if (!lib.songs.length) {
+    msg.textContent = "Marque pelo menos uma música ou um show.";
+    return;
+  }
+  if (!confirm(`Publicar ${lib.songs.length} música${lib.songs.length === 1 ? "" : "s"} e ${lib.setlists.length} show${lib.setlists.length === 1 ? "" : "s"}?\n\nIsso substitui o que está na biblioteca agora.`)) return;
+  const btn = document.getElementById("btn-do-publish");
+  btn.disabled = true;
+  msg.style.color = "var(--muted2)";
+  msg.textContent = "Publicando…";
+  try {
+    const r = await apiPost({
+      acao: "publicar",
+      senha: conn.senha,
+      biblioteca: lib
+    });
+    if (!r.ok) throw new Error(r.erro === "senha" ? "a senha de professor foi recusada" : r.erro);
+    lib.updatedAt = r.updatedAt;
+    library = lib;
+    saveLibCache();
+    // cópias que o próprio professor tenha da biblioteca ficam marcadas como em dia
+    songs.forEach(s => {
+      if (s.libId) {
+        const ls = libSongById(s.libId);
+        if (ls) s.libRev = ls.rev;
+      }
+    });
+    persistQuiet();
+    savePubSel();
+    msg.textContent = "";
+    mainTab = "lib";
+    showList();
+    flash(`Publicado ✓ ${r.musicas} música${r.musicas === 1 ? "" : "s"} e ${r.shows} show${r.shows === 1 ? "" : "s"} na biblioteca`, "ok");
+  } catch (e) {
+    msg.style.color = "";
+    msg.textContent = "⚠ " + apiErrMsg(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* --- importar JSON da pasta do Drive (professor) --- */
+async function showDriveImport() {
+  const el = document.getElementById("drive-files");
+  el.innerHTML = `<div class="empty" style="padding:20px;">Lendo a pasta do Drive…</div>`;
+  showView("view-drive");
+  try {
+    const r = await apiGet({
+      acao: "listar",
+      senha: conn.senha
+    });
+    if (!r.ok) throw new Error(r.erro === "senha" ? "a senha de professor foi recusada" : r.erro);
+    if (!r.arquivos.length) {
+      el.innerHTML = `<div class="empty" style="padding:20px;">Nenhum arquivo .json na pasta <b>Cifra Roller</b>.<br>Coloque lá os backups que você exportou do app.</div>`;
+      return;
+    }
+    el.innerHTML = r.arquivos.map(f => `
+      <div class="card">
+        <div class="card-main" style="cursor:default;">
+          <div class="card-title">${escHtml(f.nome)}</div>
+          <div class="card-meta"><span class="badge">${escHtml(new Date(f.data).toLocaleString("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short"
+    }))}</span></div>
+        </div>
+        <div class="card-actions"><button class="btn btn-primary" onclick="importDriveFile('${f.id}', this)">Importar</button></div>
+      </div>`).join("");
+  } catch (e) {
+    el.innerHTML = `<div class="empty" style="padding:20px; color:var(--red);">⚠ ${escHtml(apiErrMsg(e))}</div>`;
+  }
+}
+
+// junta um backup ao repertório atual, sem duplicar
+function mergeImport(parsed) {
+  let inSongs,
+    inSets = [];
+  if (Array.isArray(parsed)) inSongs = parsed;else if (parsed && Array.isArray(parsed.songs)) {
+    inSongs = parsed.songs;
+    inSets = Array.isArray(parsed.setlists) ? parsed.setlists : [];
+  } else throw new Error("esse arquivo não é um backup do Cifra Roller");
+  let addSongs = 0,
+    skipSongs = 0,
+    addSets = 0;
+  inSongs.forEach(s => {
+    if (!s || typeof s !== "object" || !s.id || !("text" in s)) return;
+    if (songs.some(x => x.id === s.id || x.libId === s.id)) {
+      skipSongs++;
+      return;
+    }
+    const c = Object.assign({}, s);
+    delete c.rev;
+    songs.push(c);
+    addSongs++;
+  });
+  inSets.forEach(sl => {
+    if (!sl || !sl.id || !Array.isArray(sl.songIds)) return;
+    if (setlists.some(x => x.id === sl.id || x.libId === sl.id)) return;
+    const ids = sl.songIds.map(id => {
+      const s = songs.find(x => x.id === id) || songs.find(x => x.libId === id);
+      return s ? s.id : null;
+    }).filter(Boolean);
+    setlists.push({
+      id: sl.id,
+      name: sl.name || "Show importado",
+      songIds: ids
+    });
+    addSets++;
+  });
+  return {
+    addSongs,
+    skipSongs,
+    addSets
+  };
+}
+async function importDriveFile(id, btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Importando…";
+  }
+  try {
+    const r = await apiGet({
+      acao: "abrir",
+      id: id,
+      senha: conn.senha
+    });
+    if (!r.ok) throw new Error(r.erro);
+    const res = mergeImport(r.conteudo);
+    persistQuiet();
+    mainTab = "songs";
+    showList();
+    flash(`Importado ✓ ${res.addSongs} música${res.addSongs === 1 ? "" : "s"} nova${res.addSongs === 1 ? "" : "s"}` + (res.addSets ? ` e ${res.addSets} show${res.addSets === 1 ? "" : "s"}` : "") + (res.skipSongs ? ` · ${res.skipSongs} já estava${res.skipSongs === 1 ? "" : "m"} no repertório` : ""), "ok");
+  } catch (e) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Importar";
+    }
+    alert("⚠ Não consegui importar: " + (e && e.message ? e.message : e));
+  }
+}
+
+/* ============ INIT ============ */
+loadSongs();
+renderList();
+renderSetlists();
+// com conexão, confere se a biblioteca tem novidade (sem incomodar se estiver offline)
+if (conn.url) pullLibrary(true);
+
+// ao colar uma cifra no editor, detecta título e tom automaticamente
+document.getElementById("f-text").addEventListener("paste", () => {
+  setTimeout(() => detectFromText(false), 50);
+});
+</script>
+</body>
+</html>
